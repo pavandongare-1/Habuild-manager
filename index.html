@@ -1217,11 +1217,12 @@ function initFirebase() {
         // Reload to get fresh emailVerified status
         await user.reload();
         const fresh = auth.currentUser;
-        if (!fresh.emailVerified) {
-          showVerifyBanner();
-          showLogin();
-          return;
-        }
+       // Email verification check disabled for admin-only access
+// if (!fresh.emailVerified) {
+//   showVerifyBanner();
+//   await auth.signOut();
+//   return;
+// }
         if (!ADMIN_EMAILS.includes(fresh.email)) {
           showAuthError("Access denied. Your email is not on the admin list.");
           await auth.signOut();
