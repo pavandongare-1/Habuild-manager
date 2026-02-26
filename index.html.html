@@ -1,0 +1,1957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habuild Community Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK (v9 compat mode - works as CDN in single file) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+<style>
+/* ─── CSS VARIABLES ─────────────────────────────────────────── */
+:root {
+  --navy:        #070f1e;
+  --navy-mid:    #0d1f3c;
+  --surface:     #0d1b35;
+  --surface-2:   #112240;
+  --surface-3:   #162a4a;
+  --blue:        #1a56db;
+  --blue-hover:  #1d4ed8;
+  --blue-light:  #3b82f6;
+  --cyan:        #06b6d4;
+  --border:      rgba(30,90,160,0.35);
+  --border-soft: rgba(30,90,160,0.18);
+  --text:        #e2e8f0;
+  --text-dim:    #94a3b8;
+  --text-muted:  #64748b;
+  --success:     #10b981;
+  --danger:      #ef4444;
+  --warning:     #f59e0b;
+  --radius:      10px;
+  --radius-lg:   16px;
+  --shadow:      0 4px 24px rgba(0,0,0,0.4);
+  --shadow-lg:   0 20px 60px rgba(0,0,0,0.6);
+}
+
+/* ─── RESET ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--navy);
+  color: var(--text);
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(26,86,219,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 110%, rgba(6,182,212,0.07) 0%, transparent 60%);
+  overflow-x: hidden;
+}
+
+/* ─── PAGES ─────────────────────────────────────────────────── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ─── LOGIN PAGE ────────────────────────────────────────────── */
+#loginPage {
+  min-height: 100vh;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  position: relative;
+}
+#loginPage.active { display: flex; }
+
+.login-bg-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(30,90,160,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30,90,160,0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+.login-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 1;
+  animation: fadeUp 0.4s ease;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.login-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2rem;
+}
+
+.logo-icon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-weight: 800; color: white;
+  box-shadow: 0 4px 16px rgba(26,86,219,0.4);
+}
+
+.login-logo-text { font-size: 1.05rem; font-weight: 700; }
+.login-logo-text span { color: var(--cyan); }
+
+.login-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.35rem; }
+.login-sub { font-size: 0.875rem; color: var(--text-dim); margin-bottom: 2rem; }
+
+/* Auth Tabs */
+.auth-tabs {
+  display: flex;
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 1.75rem;
+  border: 1px solid var(--border-soft);
+}
+.auth-tab {
+  flex: 1; padding: 0.5rem;
+  text-align: center;
+  font-size: 0.85rem; font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  color: var(--text-dim);
+  border: none; background: transparent;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s;
+}
+.auth-tab.active {
+  background: var(--blue);
+  color: white;
+  box-shadow: 0 2px 8px rgba(26,86,219,0.35);
+}
+
+.form-group { margin-bottom: 1rem; }
+.form-group label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+input[type="email"],
+input[type="password"],
+input[type="text"],
+input[type="number"],
+select {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, select:focus {
+  border-color: var(--blue-light);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+input::placeholder { color: var(--text-muted); }
+
+.input-hint {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 0.35rem;
+}
+
+/* OTP Box */
+.otp-inputs {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 1rem 0;
+}
+.otp-input {
+  width: 48px; height: 52px;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: all 0.15s;
+}
+.otp-input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(6,182,212,0.2);
+}
+
+/* ─── BUTTONS ───────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--blue); color: white; width: 100%; padding: 0.75rem; font-size: 0.95rem; }
+.btn-primary:hover:not(:disabled) { background: var(--blue-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(26,86,219,0.4); }
+.btn-sm { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
+.btn-icon { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+.btn-icon:hover { background: var(--surface-3); color: var(--text); }
+.btn-danger-sm { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+.btn-danger-sm:hover { background: rgba(239,68,68,0.22); }
+.btn-success-sm { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+.btn-success-sm:hover { background: rgba(16,185,129,0.22); }
+.btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--surface-3); color: var(--text); }
+.btn-cyan { background: rgba(6,182,212,0.15); color: var(--cyan); border: 1px solid rgba(6,182,212,0.3); }
+.btn-cyan:hover { background: rgba(6,182,212,0.25); }
+
+.divider {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin: 1.25rem 0;
+  color: var(--text-muted); font-size: 0.78rem;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1;
+  height: 1px; background: var(--border);
+}
+
+.auth-link {
+  text-align: center;
+  font-size: 0.83rem;
+  color: var(--text-dim);
+  margin-top: 1.25rem;
+}
+.auth-link a {
+  color: var(--blue-light);
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.auth-error {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #f87171;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-size: 0.83rem;
+  margin-bottom: 1rem;
+  display: none;
+}
+.auth-error.visible { display: block; }
+
+.auth-success {
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.3);
+  color: #34d399;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-size: 0.83rem;
+  margin-bottom: 1rem;
+  display: none;
+}
+.auth-success.visible { display: block; }
+
+/* Verification banner */
+.verify-banner {
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.83rem;
+  color: #fbbf24;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  display: none;
+}
+.verify-banner.visible { display: flex; }
+
+/* ─── DASHBOARD ─────────────────────────────────────────────── */
+#dashPage { display: none; min-height: 100vh; }
+#dashPage.active { display: block; }
+
+/* HEADER */
+header {
+  background: rgba(10,19,38,0.92);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0; z-index: 200;
+}
+
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-logo-icon {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 0.8rem; color: white;
+}
+.header-title { font-size: 1rem; font-weight: 700; }
+.header-title span { color: var(--cyan); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0.3rem 0.9rem 0.3rem 0.35rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.user-avatar {
+  width: 24px; height: 24px;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; font-weight: 700; color: white;
+}
+
+.role-badge {
+  background: rgba(26,86,219,0.2);
+  color: var(--blue-light);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 99px;
+  border: 1px solid rgba(59,130,246,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: 'DM Mono', monospace;
+}
+
+.last-updated {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+  display: flex; align-items: center; gap: 4px;
+}
+
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+  animation: pulse 2s infinite;
+}
+.live-dot.offline { background: var(--text-muted); box-shadow: none; animation: none; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* MAIN */
+.dash-main { max-width: 1440px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+/* STATUS BAR */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.status-sep { color: var(--border); }
+
+.countdown-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  background: rgba(6,182,212,0.1);
+  color: var(--cyan);
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  border: 1px solid rgba(6,182,212,0.25);
+}
+
+/* STATS GRID */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.stat-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+  cursor: default;
+}
+.stat-card:hover { transform: translateY(-2px); border-color: rgba(59,130,246,0.5); }
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  border-radius: 3px 0 0 3px;
+}
+.stat-card.c-all::before   { background: linear-gradient(to bottom, var(--blue), var(--cyan)); }
+.stat-card.c-YE::before    { background: #fbbf24; }
+.stat-card.c-CP::before    { background: #a5b4fc; }
+.stat-card.c-N::before     { background: #34d399; }
+.stat-card.c-M::before     { background: #f87171; }
+.stat-card.c-O::before     { background: #22d3ee; }
+.stat-card.c-P::before     { background: #d8b4fe; }
+
+.stat-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 0.4rem; }
+.stat-value { font-size: 1.9rem; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; }
+.stat-value.cyan { color: var(--cyan); }
+.stat-sub { font-size: 0.71rem; color: var(--text-muted); margin-top: 0.3rem; }
+.stat-members { font-size: 0.78rem; color: var(--text-dim); margin-top: 0.2rem; font-family: 'DM Mono', monospace; }
+.stat-members span { color: var(--cyan); font-weight: 600; }
+
+/* TOOLBAR */
+.toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.search-wrap {
+  flex: 1; min-width: 200px;
+  position: relative;
+}
+.search-icon {
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+  font-size: 1rem;
+}
+.search-wrap input { padding-left: 2.5rem; }
+
+/* CHIPS */
+.series-chips {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.chip {
+  padding: 0.28rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  transition: all 0.15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.chip:hover, .chip.active { border-color: var(--blue-light); color: var(--blue-light); background: rgba(59,130,246,0.1); }
+.chip.all.active { border-color: var(--cyan); color: var(--cyan); background: rgba(6,182,212,0.1); }
+
+/* TABLE */
+.table-container {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.table-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.table-title { font-weight: 600; font-size: 0.92rem; }
+.table-count { font-size: 0.78rem; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+
+.table-scroll { overflow-x: auto; min-height: 120px; position: relative; }
+
+table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+thead tr { background: rgba(255,255,255,0.025); border-bottom: 1px solid var(--border); }
+th {
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  font-weight: 600;
+  white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid rgba(30,58,95,0.3); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+td { padding: 0.7rem 1rem; vertical-align: middle; }
+
+/* BADGES */
+.series-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.badge-YE { background: rgba(245,158,11,0.12); color: #fbbf24; }
+.badge-CP { background: rgba(99,102,241,0.12); color: #a5b4fc; }
+.badge-N  { background: rgba(16,185,129,0.12); color: #34d399; }
+.badge-M  { background: rgba(239,68,68,0.12);  color: #f87171; }
+.badge-O  { background: rgba(6,182,212,0.12);  color: #22d3ee; }
+.badge-P  { background: rgba(168,85,247,0.12); color: #d8b4fe; }
+
+.id-badge { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--text-muted); }
+.comm-num { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cyan); }
+.members-num { font-family: 'DM Mono', monospace; color: var(--text); }
+
+/* Source chip */
+.source-chip {
+  font-size: 0.68rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+}
+.source-chip.sheet { background: rgba(16,185,129,0.1); color: #34d399; }
+.source-chip.local { background: rgba(100,116,139,0.1); color: var(--text-muted); }
+
+/* LOADING OVERLAY */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10,19,38,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(2px);
+  border-radius: 0 0 var(--radius) var(--radius);
+  display: none;
+}
+.loading-overlay.visible { display: flex; }
+
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid rgba(59,130,246,0.2);
+  border-top-color: var(--blue-light);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 0.75rem;
+  font-family: 'DM Mono', monospace;
+}
+
+/* INLINE EDIT */
+.inline-input {
+  background: var(--navy-mid);
+  border: 1px solid var(--blue-light);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.82rem;
+  width: 90px;
+  outline: none;
+}
+
+/* EMPTY */
+.empty-state { padding: 4rem 2rem; text-align: center; color: var(--text-dim); }
+.empty-state svg { margin-bottom: 1rem; opacity: 0.35; }
+
+/* PAGINATION */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.5rem;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.page-info { font-size: 0.78rem; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+.page-btns { display: flex; gap: 0.3rem; }
+.page-btn {
+  width: 30px; height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s;
+}
+.page-btn:hover { background: var(--surface-3); color: var(--text); }
+.page-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+.page-btn:disabled { opacity: 0.3; cursor: default; }
+
+/* MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(5px);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 500px;
+  box-shadow: var(--shadow-lg);
+  animation: fadeUp 0.2s ease;
+}
+.modal-head {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-head h2 { font-size: 1rem; font-weight: 600; }
+.close-btn {
+  background: none; border: none;
+  color: var(--text-dim); font-size: 1.1rem;
+  cursor: pointer; width: 28px; height: 28px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.close-btn:hover { background: rgba(255,255,255,0.07); color: var(--text); }
+.modal-body { padding: 1.5rem; }
+.modal-foot {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.form-group-m { margin-bottom: 1rem; }
+.form-group-m label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.06em; }
+
+.admin-notice {
+  background: rgba(245,158,11,0.07);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-size: 0.78rem;
+  color: #fbbf24;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* TOAST */
+.toast-container {
+  position: fixed;
+  bottom: 1.5rem; right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.toast {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  font-size: 0.83rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: toastIn 0.2s ease;
+  max-width: 340px;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.toast-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.toast.success .toast-dot { background: var(--success); }
+.toast.error   .toast-dot { background: var(--danger); }
+.toast.info    .toast-dot { background: var(--blue-light); }
+.toast.warn    .toast-dot { background: var(--warning); }
+
+/* REFRESH SPIN */
+.spin-anim { animation: spin 0.8s linear infinite; display: inline-block; }
+
+/* ACTIONS */
+.actions-cell { display: flex; gap: 4px; }
+
+/* SETUP NOTICE */
+.setup-notice {
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: none;
+}
+.setup-notice.visible { display: block; }
+.setup-notice h3 { color: #fbbf24; font-size: 0.9rem; margin-bottom: 0.5rem; }
+.setup-notice p { font-size: 0.82rem; color: var(--text-dim); line-height: 1.6; }
+.setup-notice code {
+  background: rgba(0,0,0,0.3);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--cyan);
+}
+
+/* MOBILE */
+@media (max-width: 640px) {
+  .dash-main { padding: 1rem; }
+  .header-right .last-updated { display: none; }
+  th:nth-child(5), td:nth-child(5),
+  th:nth-child(6), td:nth-child(6) { display: none; }
+  .form-row { grid-template-columns: 1fr; }
+  .login-card { padding: 1.75rem 1.25rem; }
+  .user-chip .user-email { display: none; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 400px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+select option { background: var(--surface-2); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     LOGIN PAGE
+═══════════════════════════════════════════════════════════ -->
+<div id="loginPage" class="page active">
+  <div class="login-bg-grid"></div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">H</div>
+      <div class="login-logo-text">Habuild <span>Community</span></div>
+    </div>
+
+    <!-- Auth tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">Register</button>
+      <button class="auth-tab" id="tabReset" onclick="switchTab('reset')">Reset</button>
+    </div>
+
+    <div id="authError" class="auth-error"></div>
+    <div id="authSuccess" class="auth-success"></div>
+    <div id="verifyBanner" class="verify-banner">
+      <span>⚠ Please verify your email before signing in.</span>
+      <button class="btn btn-sm btn-cyan" onclick="resendVerification()">Resend</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="formLogin">
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"
+          onkeypress="if(event.key==='Enter') doLogin()">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()" id="btnLogin">Sign In to Dashboard</button>
+      <div class="auth-link"><a onclick="switchTab('reset')">Forgot password?</a></div>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="formRegister" style="display:none">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="regName" placeholder="Your name">
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="regEmail" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="regPassword" placeholder="Min 6 characters">
+        <div class="input-hint">Minimum 6 characters</div>
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" id="regConfirm" placeholder="Repeat password"
+          onkeypress="if(event.key==='Enter') doRegister()">
+      </div>
+      <button class="btn btn-primary" onclick="doRegister()" id="btnRegister">Create Account</button>
+      <div class="auth-link">Already registered? <a onclick="switchTab('login')">Sign in</a></div>
+    </div>
+
+    <!-- RESET FORM -->
+    <div id="formReset" style="display:none">
+      <p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:1.25rem;line-height:1.6;">
+        Enter your email and we'll send a password reset link.
+      </p>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="resetEmail" placeholder="you@example.com"
+          onkeypress="if(event.key==='Enter') doReset()">
+      </div>
+      <button class="btn btn-primary" onclick="doReset()" id="btnReset">Send Reset Link</button>
+      <div class="auth-link"><a onclick="switchTab('login')">Back to Sign In</a></div>
+    </div>
+
+    <div style="margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(--border-soft);text-align:center;">
+      <p style="font-size:0.7rem;color:var(--text-muted)">Admin access only · Powered by Firebase Auth</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     DASHBOARD PAGE
+═══════════════════════════════════════════════════════════ -->
+<div id="dashPage" class="page">
+
+  <header>
+    <div class="header-left">
+      <div class="header-logo-icon">H</div>
+      <div class="header-title">Habuild <span>Manager</span></div>
+    </div>
+    <div class="header-right">
+      <div class="last-updated">
+        <div class="live-dot" id="liveDot"></div>
+        <span id="lastUpdatedText">—</span>
+      </div>
+      <div class="countdown-badge" id="countdownBadge">⟳ 60s</div>
+      <div class="user-chip">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <span class="user-email" id="userEmail">—</span>
+        <span class="role-badge">Admin</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="dash-main">
+
+    <!-- SETUP NOTICE -->
+    <div class="setup-notice" id="setupNotice">
+      <h3>⚙ Configuration Required</h3>
+      <p>
+        Set your <code>FIREBASE_CONFIG</code> and <code>SHEET_CSV_URL</code> at the top of the <code>&lt;script&gt;</code> section.
+        Until then, the app runs on local demo data. See the comments in the source for instructions.
+      </p>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div class="status-bar">
+      <div class="status-item">
+        <div class="live-dot" id="statusDot"></div>
+        <span id="statusText">Initialising…</span>
+      </div>
+      <span class="status-sep">|</span>
+      <div class="status-item">
+        Source: <strong id="dataSource" style="color:var(--cyan);margin-left:4px">—</strong>
+      </div>
+      <span class="status-sep">|</span>
+      <div class="status-item">
+        <span id="fetchStatus">—</span>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button class="btn btn-cyan btn-sm" onclick="manualRefresh()" id="refreshBtn">
+          ↻ Refresh Now
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">↓ Export CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal()">＋ Add Entry</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card c-all">
+        <div class="stat-label">Total Communities</div>
+        <div class="stat-value cyan" id="statTotal">—</div>
+        <div class="stat-members">Members: <span id="statTotalMembers">—</span></div>
+        <div class="stat-sub">All series combined</div>
+      </div>
+      <div class="stat-card c-YE">
+        <div class="stat-label">YE Series</div>
+        <div class="stat-value" id="statYE">—</div>
+        <div class="stat-members">Members: <span id="statYEMembers">—</span></div>
+        <div class="stat-sub">Comm 1–64 · 6 series</div>
+      </div>
+      <div class="stat-card c-CP">
+        <div class="stat-label">CP Series</div>
+        <div class="stat-value" id="statCP">—</div>
+        <div class="stat-members">Members: <span id="statCPMembers">—</span></div>
+        <div class="stat-sub">Comm 1–131 · 26 series</div>
+      </div>
+      <div class="stat-card c-N">
+        <div class="stat-label">N Series</div>
+        <div class="stat-value" id="statN">—</div>
+        <div class="stat-members">Members: <span id="statNMembers">—</span></div>
+        <div class="stat-sub">Comm 111–230 · 12 series</div>
+      </div>
+      <div class="stat-card c-M">
+        <div class="stat-label">M Series</div>
+        <div class="stat-value" id="statM">—</div>
+        <div class="stat-members">Members: <span id="statMMembers">—</span></div>
+        <div class="stat-sub">Comm 231–350 · 12 series</div>
+      </div>
+      <div class="stat-card c-O">
+        <div class="stat-label">O Series</div>
+        <div class="stat-value" id="statO">—</div>
+        <div class="stat-members">Members: <span id="statOMembers">—</span></div>
+        <div class="stat-sub">Comm 251–550 · 20 series</div>
+      </div>
+      <div class="stat-card c-P">
+        <div class="stat-label">P Series</div>
+        <div class="stat-value" id="statP">—</div>
+        <div class="stat-members">Members: <span id="statPMembers">—</span></div>
+        <div class="stat-sub">Comm 552–708 · 5 series</div>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="searchInput" placeholder="Search series, community number, name…" oninput="onSearch()">
+      </div>
+    </div>
+
+    <!-- CHIPS -->
+    <div class="series-chips">
+      <button class="chip all active" onclick="filterBySeries('ALL',this)">All</button>
+      <button class="chip" onclick="filterBySeries('YE',this)">YE</button>
+      <button class="chip" onclick="filterBySeries('CP',this)">CP</button>
+      <button class="chip" onclick="filterBySeries('N',this)">N</button>
+      <button class="chip" onclick="filterBySeries('M',this)">M</button>
+      <button class="chip" onclick="filterBySeries('O',this)">O</button>
+      <button class="chip" onclick="filterBySeries('P',this)">P</button>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-container">
+      <div class="table-header">
+        <div class="table-title">Community Directory</div>
+        <div class="table-count" id="tableCount">— entries</div>
+      </div>
+      <div class="table-scroll" id="tableScroll">
+        <div class="loading-overlay" id="loadingOverlay">
+          <div style="text-align:center">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingMsg">Fetching latest data…</div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Series</th>
+              <th>Series No.</th>
+              <th>Community No.</th>
+              <th>Members</th>
+              <th>Name / Notes</th>
+              <th>Source</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state" style="display:none">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <p>No entries match your filter.</p>
+        </div>
+      </div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+
+  </div><!-- /dash-main -->
+</div><!-- /dashPage -->
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">Add Community</h2>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="admin-notice">⚡ Admin edit — changes are saved locally and persist across sessions.</div>
+      <div class="form-row">
+        <div class="form-group-m">
+          <label>Series</label>
+          <select id="fSeries" onchange="onSeriesChange()">
+            <option value="YE">YE</option>
+            <option value="CP">CP</option>
+            <option value="N">N</option>
+            <option value="M">M</option>
+            <option value="O">O</option>
+            <option value="P">P</option>
+          </select>
+        </div>
+        <div class="form-group-m">
+          <label>Series Number</label>
+          <input type="number" id="fSeriesNum" min="1" placeholder="e.g. 3">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group-m">
+          <label>Community Number</label>
+          <input type="number" id="fCommNum" min="1" max="708" placeholder="e.g. 45">
+        </div>
+        <div class="form-group-m">
+          <label>Members Count</label>
+          <input type="number" id="fMembers" min="0" placeholder="0">
+        </div>
+      </div>
+      <div class="form-group-m">
+        <label>Community Name <span style="opacity:0.5;font-size:0.7rem;text-transform:none">(optional)</span></label>
+        <input type="text" id="fCommName" placeholder="e.g. Mumbai Alpha">
+      </div>
+      <div class="form-group-m">
+        <label>Notes <span style="opacity:0.5;font-size:0.7rem;text-transform:none">(optional)</span></label>
+        <input type="text" id="fNotes" placeholder="Any additional notes…">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" style="width:auto;padding:0.65rem 1.5rem" onclick="saveEntry()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ──────────────────────────────────────────────────────────────
+   ★  CONFIGURATION — EDIT THESE VALUES BEFORE DEPLOYING  ★
+   ──────────────────────────────────────────────────────────── */
+
+/**
+ * STEP 1 — Firebase setup
+ * Go to https://console.firebase.google.com
+ * Create project → Authentication → Enable Email/Password
+ * Project Settings → Your apps → Web → Copy firebaseConfig below
+ */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBz8B3Kk5R36mJVL0zMjfOj2tj_UoNhitw",
+  authDomain:        "habuild-community.firebaseapp.com",
+  projectId:         "habuild-community",
+  storageBucket:     "habuild-community.firebasestorage.app",
+  messagingSenderId: "878937763041",
+  appId:             "1:878937763041:web:15df227d16fbf4c8661ba0"
+};
+
+/**
+ * STEP 2 — Google Sheet CSV URL
+ * In Google Sheets: File → Share → Publish to web
+ * Choose: Entire document → CSV → Publish
+ * Paste the link here.
+ *
+ * Expected sheet columns (row 1 = headers):
+ * Series | SeriesNum | CommunityNum | Members | Name | Notes
+ */
+const SHEET_CSV_URL = "YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL";
+
+/**
+ * STEP 3 — Admin emails
+ * Only these emails will have admin access after login.
+ * Add your email(s) here.
+ */
+const ADMIN_EMAILS = [
+  "pavandongarehabuild.in@gmail.com"
+];
+
+/**
+ * Auto-refresh interval (milliseconds). Default: 60 seconds.
+ */
+const AUTO_REFRESH_MS = 60_000;
+
+/* ──────────────────────────────────────────────────────────────
+   SERIES DEFAULTS (used when sheet is unavailable)
+   ──────────────────────────────────────────────────────────── */
+const SERIES_RANGES = {
+  YE: { count: 6,  commStart: 1,   commEnd: 64  },
+  CP: { count: 26, commStart: 1,   commEnd: 131 },
+  N:  { count: 12, commStart: 111, commEnd: 230 },
+  M:  { count: 12, commStart: 231, commEnd: 350 },
+  O:  { count: 20, commStart: 251, commEnd: 550 },
+  P:  { count: 5,  commStart: 552, commEnd: 708 },
+};
+
+const STORAGE_KEY     = 'habuild_v3_data';
+const PAGE_SIZE       = 25;
+
+/* ──────────────────────────────────────────────────────────────
+   STATE
+   ──────────────────────────────────────────────────────────── */
+let data         = [];          // master data array
+let filtered     = [];          // after search/filter
+let currentPage  = 1;
+let searchTerm   = '';
+let seriesFilter = 'ALL';
+let editingId    = null;
+let currentUser  = null;
+let autoRefreshTimer  = null;
+let countdownTimer    = null;
+let countdownSecs     = AUTO_REFRESH_MS / 1000;
+let isLoading         = false;
+let usingLocalData    = true;   // false when sheet loaded OK
+let configOk          = false;  // true when user has filled config
+let lastFetchTime     = null;
+
+/* ──────────────────────────────────────────────────────────────
+   FIREBASE INIT
+   ──────────────────────────────────────────────────────────── */
+let auth = null;
+
+function initFirebase() {
+  if (FIREBASE_CONFIG.apiKey === "YOUR_API_KEY") {
+    console.warn("[Habuild] Firebase not configured. Running in demo mode.");
+    showSetupNotice();
+    // Auto-login in demo mode
+    showDashboard({ email: "demo@habuild.app", uid: "demo" });
+    return;
+  }
+  configOk = true;
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    auth = firebase.auth();
+
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        // Reload to get fresh emailVerified status
+        await user.reload();
+        const fresh = auth.currentUser;
+        if (!fresh.emailVerified) {
+          showVerifyBanner();
+          showLogin();
+          return;
+        }
+        if (!ADMIN_EMAILS.includes(fresh.email)) {
+          showAuthError("Access denied. Your email is not on the admin list.");
+          await auth.signOut();
+          return;
+        }
+        showDashboard(fresh);
+      } else {
+        showLogin();
+      }
+    });
+  } catch (e) {
+    console.error("[Firebase]", e);
+    showAuthError("Firebase initialisation failed: " + e.message);
+    showLogin();
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   AUTH HELPERS
+   ──────────────────────────────────────────────────────────── */
+function switchTab(tab) {
+  ['login','register','reset'].forEach(t => {
+    document.getElementById('tab' + capitalise(t)).classList.toggle('active', t === tab);
+    document.getElementById('form' + capitalise(t)).style.display = t === tab ? 'block' : 'none';
+  });
+  clearAuthMessages();
+}
+
+function capitalise(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+function showAuthSuccess(msg) {
+  const el = document.getElementById('authSuccess');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+function clearAuthMessages() {
+  document.getElementById('authError').classList.remove('visible');
+  document.getElementById('authSuccess').classList.remove('visible');
+  document.getElementById('verifyBanner').classList.remove('visible');
+}
+function showVerifyBanner() {
+  document.getElementById('verifyBanner').classList.add('visible');
+}
+
+async function doLogin() {
+  if (!auth) { toast("Firebase not configured — running in demo mode.", "warn"); return; }
+  clearAuthMessages();
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPassword').value;
+  if (!email || !pass) { showAuthError("Please enter email and password."); return; }
+
+  setLoading('btnLogin', true, "Signing in…");
+  try {
+    const cred = await auth.signInWithEmailAndPassword(email, pass);
+    await cred.user.reload();
+    if (!cred.user.emailVerified) {
+      showVerifyBanner();
+      await auth.signOut();
+    }
+    // onAuthStateChanged handles the rest
+  } catch (e) {
+    showAuthError(friendlyAuthError(e));
+  } finally {
+    setLoading('btnLogin', false, "Sign In to Dashboard");
+  }
+}
+
+async function doRegister() {
+  if (!auth) { toast("Firebase not configured.", "warn"); return; }
+  clearAuthMessages();
+  const name  = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass  = document.getElementById('regPassword').value;
+  const conf  = document.getElementById('regConfirm').value;
+
+  if (!name || !email || !pass) { showAuthError("All fields are required."); return; }
+  if (pass !== conf)            { showAuthError("Passwords do not match."); return; }
+  if (pass.length < 6)         { showAuthError("Password must be at least 6 characters."); return; }
+  if (!ADMIN_EMAILS.includes(email)) {
+    showAuthError("This email is not on the approved admin list. Contact your administrator.");
+    return;
+  }
+
+  setLoading('btnRegister', true, "Creating account…");
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await cred.user.updateProfile({ displayName: name });
+    await cred.user.sendEmailVerification();
+    showAuthSuccess(`Account created! A verification email has been sent to ${email}. Please verify then sign in.`);
+    switchTab('login');
+  } catch (e) {
+    showAuthError(friendlyAuthError(e));
+  } finally {
+    setLoading('btnRegister', false, "Create Account");
+  }
+}
+
+async function doReset() {
+  if (!auth) { toast("Firebase not configured.", "warn"); return; }
+  clearAuthMessages();
+  const email = document.getElementById('resetEmail').value.trim();
+  if (!email) { showAuthError("Enter your email address."); return; }
+
+  setLoading('btnReset', true, "Sending…");
+  try {
+    await auth.sendPasswordResetEmail(email);
+    showAuthSuccess(`Reset link sent to ${email}. Check your inbox.`);
+  } catch (e) {
+    showAuthError(friendlyAuthError(e));
+  } finally {
+    setLoading('btnReset', false, "Send Reset Link");
+  }
+}
+
+async function resendVerification() {
+  if (!auth || !auth.currentUser) return;
+  try {
+    await auth.currentUser.sendEmailVerification();
+    toast("Verification email resent.", "success");
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+async function doLogout() {
+  stopAutoRefresh();
+  if (auth) await auth.signOut();
+  else showLogin();
+}
+
+function friendlyAuthError(e) {
+  const map = {
+    'auth/user-not-found':       "No account with that email.",
+    'auth/wrong-password':       "Incorrect password.",
+    'auth/invalid-email':        "Invalid email address.",
+    'auth/email-already-in-use': "Email already registered.",
+    'auth/too-many-requests':    "Too many attempts. Try again later.",
+    'auth/network-request-failed': "Network error. Check your connection.",
+    'auth/invalid-credential':   "Invalid email or password.",
+  };
+  return map[e.code] || e.message;
+}
+
+function setLoading(btnId, loading, text) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.textContent = loading ? text : text;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   PAGE TRANSITIONS
+   ──────────────────────────────────────────────────────────── */
+function showLogin() {
+  document.getElementById('loginPage').classList.add('active');
+  document.getElementById('dashPage').classList.remove('active');
+}
+
+function showDashboard(user) {
+  currentUser = user;
+  document.getElementById('loginPage').classList.remove('active');
+  document.getElementById('dashPage').classList.add('active');
+
+  const email = user.email || 'demo';
+  const initials = email.substring(0, 2).toUpperCase();
+  document.getElementById('userAvatar').textContent = initials;
+  document.getElementById('userEmail').textContent = email;
+
+  initDashboard();
+}
+
+function showSetupNotice() {
+  document.getElementById('setupNotice').classList.add('visible');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   DASHBOARD INIT
+   ──────────────────────────────────────────────────────────── */
+function initDashboard() {
+  loadLocalData();
+  render();
+  fetchSheetData(); // first fetch immediately
+  startAutoRefresh();
+}
+
+/* ──────────────────────────────────────────────────────────────
+   LOCAL STORAGE
+   ──────────────────────────────────────────────────────────── */
+function loadLocalData() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try { data = JSON.parse(saved); } catch { data = generateDefaultData(); }
+  } else {
+    data = generateDefaultData();
+    saveLocal();
+  }
+}
+
+function saveLocal() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function generateDefaultData() {
+  const entries = [];
+  let uid = 1;
+  for (const [series, cfg] of Object.entries(SERIES_RANGES)) {
+    const range = cfg.commEnd - cfg.commStart + 1;
+    const step  = cfg.count > 1 ? Math.floor(range / cfg.count) : range;
+    for (let i = 1; i <= cfg.count; i++) {
+      const commNum = Math.min(cfg.commStart + (i - 1) * step, cfg.commEnd);
+      entries.push({ id: uid++, series, seriesNum: i, commNum, members: 0, commName: '', notes: '', source: 'local' });
+    }
+  }
+  return entries;
+}
+
+function nextId() {
+  return data.length ? Math.max(...data.map(d => d.id)) + 1 : 1;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   GOOGLE SHEET CSV FETCH
+   ──────────────────────────────────────────────────────────── */
+async function fetchSheetData(silent = false) {
+  if (SHEET_CSV_URL === "YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL") {
+    setStatus("Demo mode — no sheet configured", false);
+    setFetchStatus("Using local data");
+    document.getElementById('dataSource').textContent = "Local / Demo";
+    if (!silent) toast("Sheet URL not configured. Using demo data.", "warn");
+    return;
+  }
+
+  if (!silent) showLoadingOverlay("Fetching Google Sheet…");
+  setStatus("Refreshing…", true);
+  setFetchStatus("Fetching…");
+
+  // Cache-busting timestamp
+  const url = `${SHEET_CSV_URL}&cachebust=${Date.now()}`;
+
+  try {
+    const res = await fetch(url, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const csv = await res.text();
+    const parsed = parseCSV(csv);
+
+    if (parsed.length === 0) throw new Error("Sheet returned no data.");
+
+    // Merge sheet data with local overrides
+    mergeSheetData(parsed);
+    saveLocal();
+    usingLocalData = false;
+
+    lastFetchTime = new Date();
+    setLastUpdated(lastFetchTime);
+    setStatus("Live — synced with Google Sheet", true);
+    setFetchStatus(`✓ ${parsed.length} rows loaded`);
+    document.getElementById('dataSource').textContent = "Google Sheet";
+    if (!silent) toast(`Loaded ${parsed.length} rows from Sheet.`, "success");
+
+  } catch (err) {
+    console.error("[SheetFetch]", err);
+    setStatus("Sheet unavailable — showing local data", false);
+    setFetchStatus(`⚠ Error: ${err.message}`);
+    document.getElementById('dataSource').textContent = "Local (sheet error)";
+    if (!silent) toast(`Sheet fetch failed: ${err.message}`, "error");
+  } finally {
+    hideLoadingOverlay();
+    render();
+  }
+}
+
+/**
+ * Parse CSV text → array of objects
+ * Expected header: Series,SeriesNum,CommunityNum,Members,Name,Notes
+ */
+function parseCSV(csv) {
+  const lines = csv.trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return [];
+
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
+
+  const colMap = {
+    series:    headers.findIndex(h => h === 'series'),
+    seriesnum: headers.findIndex(h => h.includes('seriesnum') || h === 'seriesno' || h === 'seriesn'),
+    commnum:   headers.findIndex(h => h.includes('communitynum') || h.includes('commnum') || h === 'communityno'),
+    members:   headers.findIndex(h => h.includes('member') || h === 'members' || h === 'count'),
+    name:      headers.findIndex(h => h === 'name' || h === 'commname' || h === 'communityname'),
+    notes:     headers.findIndex(h => h === 'notes' || h === 'note'),
+  };
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitCSVLine(lines[i]);
+    const get  = (key) => (colMap[key] >= 0 ? (cols[colMap[key]] || '').trim() : '');
+
+    const series    = get('series').toUpperCase();
+    const seriesNum = parseInt(get('seriesnum')) || 0;
+    const commNum   = parseInt(get('commnum')) || 0;
+    const members   = parseInt(get('members')) || 0;
+
+    if (!series || !SERIES_RANGES[series]) continue;
+
+    rows.push({ series, seriesNum, commNum, members, commName: get('name'), notes: get('notes'), source: 'sheet' });
+  }
+  return rows;
+}
+
+function splitCSVLine(line) {
+  const result = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuote = !inQuote;
+    } else if (ch === ',' && !inQuote) {
+      result.push(cur); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+/**
+ * Merge sheet rows into local data.
+ * Sheet is source of truth for rows it provides.
+ * Local-only rows (added via UI) are preserved.
+ */
+function mergeSheetData(sheetRows) {
+  // Mark all existing sheet-sourced rows for potential removal
+  const localOnlyRows = data.filter(d => d.source === 'local' && !isDefaultEntry(d));
+
+  const merged = [];
+  let uid = 1;
+
+  // Add all sheet rows first
+  for (const row of sheetRows) {
+    merged.push({ id: uid++, ...row });
+  }
+
+  // Append local-only (user-added) rows that don't exist in sheet
+  for (const localRow of localOnlyRows) {
+    const exists = sheetRows.some(s => s.series === localRow.series && s.commNum === localRow.commNum);
+    if (!exists) {
+      merged.push({ ...localRow, id: uid++ });
+    }
+  }
+
+  data = merged;
+}
+
+function isDefaultEntry(row) {
+  // Heuristic: generated default entries have empty commName and notes
+  return !row.commName && !row.notes;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   AUTO-REFRESH
+   ──────────────────────────────────────────────────────────── */
+function startAutoRefresh() {
+  stopAutoRefresh();
+  countdownSecs = AUTO_REFRESH_MS / 1000;
+  updateCountdown();
+
+  countdownTimer = setInterval(() => {
+    countdownSecs--;
+    updateCountdown();
+    if (countdownSecs <= 0) {
+      fetchSheetData(true);
+      countdownSecs = AUTO_REFRESH_MS / 1000;
+    }
+  }, 1000);
+}
+
+function stopAutoRefresh() {
+  clearInterval(countdownTimer);
+  clearInterval(autoRefreshTimer);
+}
+
+function updateCountdown() {
+  const el = document.getElementById('countdownBadge');
+  if (el) el.textContent = `⟳ ${countdownSecs}s`;
+}
+
+async function manualRefresh() {
+  const btn = document.getElementById('refreshBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin-anim">↻</span> Refreshing…'; }
+  await fetchSheetData(false);
+  countdownSecs = AUTO_REFRESH_MS / 1000;
+  updateCountdown();
+  if (btn) { btn.disabled = false; btn.innerHTML = '↻ Refresh Now'; }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   STATUS HELPERS
+   ──────────────────────────────────────────────────────────── */
+function setStatus(msg, live) {
+  document.getElementById('statusText').textContent = msg;
+  const dot = document.getElementById('statusDot');
+  dot.className = live ? 'live-dot' : 'live-dot offline';
+  const headerDot = document.getElementById('liveDot');
+  headerDot.className = live ? 'live-dot' : 'live-dot offline';
+}
+
+function setFetchStatus(msg) {
+  document.getElementById('fetchStatus').textContent = msg;
+}
+
+function setLastUpdated(date) {
+  const el = document.getElementById('lastUpdatedText');
+  if (el && date) el.textContent = `Updated ${date.toLocaleTimeString()}`;
+}
+
+function showLoadingOverlay(msg = "Loading…") {
+  document.getElementById('loadingMsg').textContent = msg;
+  document.getElementById('loadingOverlay').classList.add('visible');
+  isLoading = true;
+}
+
+function hideLoadingOverlay() {
+  document.getElementById('loadingOverlay').classList.remove('visible');
+  isLoading = false;
+}
+
+/* ──────────────────────────────────────────────────────────────
+   RENDER
+   ──────────────────────────────────────────────────────────── */
+function applyFilters() {
+  filtered = data.filter(d => {
+    const matchSeries = seriesFilter === 'ALL' || d.series === seriesFilter;
+    const q = searchTerm;
+    const matchSearch = !q ||
+      d.series.toLowerCase().includes(q) ||
+      String(d.commNum).includes(q) ||
+      String(d.seriesNum).includes(q) ||
+      (d.commName || '').toLowerCase().includes(q) ||
+      (d.notes || '').toLowerCase().includes(q);
+    return matchSeries && matchSearch;
+  });
+  filtered.sort((a, b) => a.series.localeCompare(b.series) || a.seriesNum - b.seriesNum);
+  currentPage = 1;
+}
+
+function render() {
+  applyFilters();
+  updateStats();
+  renderTable();
+  renderPagination();
+}
+
+function updateStats() {
+  const total = data.length;
+  const totalMembers = data.reduce((s, d) => s + (d.members || 0), 0);
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statTotalMembers').textContent = totalMembers.toLocaleString();
+
+  for (const s of ['YE','CP','N','M','O','P']) {
+    const subset = data.filter(d => d.series === s);
+    const cnt = subset.length;
+    const mem = subset.reduce((a, d) => a + (d.members || 0), 0);
+    document.getElementById('stat' + s).textContent = cnt;
+    document.getElementById('stat' + s + 'Members').textContent = mem.toLocaleString();
+  }
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  const countEl = document.getElementById('tableCount');
+
+  const total = filtered.length;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page  = filtered.slice(start, start + PAGE_SIZE);
+
+  countEl.textContent = `${total} entr${total === 1 ? 'y' : 'ies'}`;
+
+  if (total === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = page.map((d, i) => `
+    <tr>
+      <td class="id-badge">${start + i + 1}</td>
+      <td><span class="series-badge badge-${d.series}">${d.series}</span></td>
+      <td class="comm-num">${d.series}${d.seriesNum}</td>
+      <td class="comm-num">${d.commNum}</td>
+      <td class="members-num">${(d.members || 0).toLocaleString()}</td>
+      <td style="color:var(--text-dim);max-width:180px;overflow:hidden;text-overflow:ellipsis">
+        ${[d.commName, d.notes].filter(Boolean).join(' · ') || '—'}
+      </td>
+      <td><span class="source-chip ${d.source === 'sheet' ? 'sheet' : 'local'}">${d.source === 'sheet' ? 'Sheet' : 'Local'}</span></td>
+      <td>
+        <div class="actions-cell">
+          <button class="btn btn-success-sm btn-sm" onclick="openEditModal(${d.id})">Edit</button>
+          <button class="btn btn-danger-sm btn-sm" onclick="deleteEntry(${d.id})">Del</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderPagination() {
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pag = document.getElementById('pagination');
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end   = Math.min(currentPage * PAGE_SIZE, filtered.length);
+
+  let pages = '';
+  for (let i = 1; i <= totalPages; i++) {
+    if (totalPages > 7 && Math.abs(i - currentPage) > 2 && i !== 1 && i !== totalPages) {
+      if (i === 2 || i === totalPages - 1) pages += `<button class="page-btn" disabled>…</button>`;
+      continue;
+    }
+    pages += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+  }
+
+  pag.innerHTML = `
+    <div class="page-info">${start}–${end} of ${filtered.length}</div>
+    <div class="page-btns">
+      <button class="page-btn" onclick="goToPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>
+      ${pages}
+      <button class="page-btn" onclick="goToPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>
+    </div>`;
+}
+
+function goToPage(p) {
+  const tp = Math.ceil(filtered.length / PAGE_SIZE);
+  if (p < 1 || p > tp) return;
+  currentPage = p;
+  renderTable();
+  renderPagination();
+  document.querySelector('.dash-main').scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ──────────────────────────────────────────────────────────────
+   CRUD
+   ──────────────────────────────────────────────────────────── */
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Add Community';
+  document.getElementById('fSeries').value = 'YE';
+  ['fSeriesNum','fCommNum','fMembers','fCommName','fNotes'].forEach(id => document.getElementById(id).value = '');
+  onSeriesChange();
+  document.getElementById('modal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const entry = data.find(d => d.id === id);
+  if (!entry) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Community';
+  document.getElementById('fSeries').value    = entry.series;
+  document.getElementById('fSeriesNum').value = entry.seriesNum;
+  document.getElementById('fCommNum').value   = entry.commNum;
+  document.getElementById('fMembers').value   = entry.members || 0;
+  document.getElementById('fCommName').value  = entry.commName || '';
+  document.getElementById('fNotes').value     = entry.notes || '';
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  editingId = null;
+}
+
+function onSeriesChange() {
+  const s = document.getElementById('fSeries').value;
+  const cfg = SERIES_RANGES[s];
+  document.getElementById('fSeriesNum').max = cfg.count;
+  document.getElementById('fSeriesNum').placeholder = `1–${cfg.count}`;
+  document.getElementById('fCommNum').min = cfg.commStart;
+  document.getElementById('fCommNum').max = cfg.commEnd;
+  document.getElementById('fCommNum').placeholder = `${cfg.commStart}–${cfg.commEnd}`;
+}
+
+function saveEntry() {
+  const series    = document.getElementById('fSeries').value;
+  const seriesNum = parseInt(document.getElementById('fSeriesNum').value);
+  const commNum   = parseInt(document.getElementById('fCommNum').value);
+  const members   = parseInt(document.getElementById('fMembers').value) || 0;
+  const commName  = document.getElementById('fCommName').value.trim();
+  const notes     = document.getElementById('fNotes').value.trim();
+  const cfg       = SERIES_RANGES[series];
+
+  if (!seriesNum || seriesNum < 1 || seriesNum > cfg.count) {
+    toast(`Series number must be 1–${cfg.count}`, 'error'); return;
+  }
+  if (!commNum || commNum < cfg.commStart || commNum > cfg.commEnd) {
+    toast(`Community number must be ${cfg.commStart}–${cfg.commEnd}`, 'error'); return;
+  }
+
+  if (editingId) {
+    const idx = data.findIndex(d => d.id === editingId);
+    data[idx] = { ...data[idx], series, seriesNum, commNum, members, commName, notes, source: 'local' };
+    toast('Entry updated ✓', 'success');
+  } else {
+    data.push({ id: nextId(), series, seriesNum, commNum, members, commName, notes, source: 'local' });
+    toast('Entry added ✓', 'success');
+  }
+
+  saveLocal();
+  closeModal();
+  render();
+}
+
+function deleteEntry(id) {
+  if (!confirm('Delete this entry? This cannot be undone.')) return;
+  data = data.filter(d => d.id !== id);
+  saveLocal();
+  render();
+  toast('Entry deleted', 'info');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   SEARCH / FILTER
+   ──────────────────────────────────────────────────────────── */
+function onSearch() {
+  searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+  render();
+}
+
+function filterBySeries(series, el) {
+  seriesFilter = series;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+/* ──────────────────────────────────────────────────────────────
+   CSV EXPORT
+   ──────────────────────────────────────────────────────────── */
+function exportCSV() {
+  const headers = ['ID','Series','SeriesNum','CommunityNum','Members','Name','Notes','Source'];
+  const rows    = data.map((d, i) => [i+1, d.series, d.seriesNum, d.commNum, d.members||0, d.commName||'', d.notes||'', d.source||'local']);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `habuild_export_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSV exported ✓', 'success');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   TOAST
+   ──────────────────────────────────────────────────────────── */
+function toast(msg, type = 'info', duration = 3500) {
+  const tc = document.getElementById('toastContainer');
+  const t  = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<div class="toast-dot"></div><span>${msg}</span>`;
+  tc.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, duration);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   KEYBOARD / MODAL CLOSE
+   ──────────────────────────────────────────────────────────── */
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+/* ──────────────────────────────────────────────────────────────
+   BOOT
+   ──────────────────────────────────────────────────────────── */
+initFirebase();
+</script>
+
+<!-- ══════════════════════════════════════════════════════════
+     DEPLOYMENT GUIDE (Remove before production)
+
+  ╔═══════════════════════════════════════════════════════════╗
+  ║           HABUILD COMMUNITY MANAGER — SETUP GUIDE         ║
+  ╠═══════════════════════════════════════════════════════════╣
+  ║                                                           ║
+  ║  STEP 1 — FIREBASE AUTHENTICATION                        ║
+  ║  ─────────────────────────────────────────────────────── ║
+  ║  1. Go to https://console.firebase.google.com            ║
+  ║  2. Create a new project (e.g. "habuild-manager")        ║
+  ║  3. Click "Authentication" → "Get started"               ║
+  ║  4. Enable "Email/Password" sign-in method               ║
+  ║  5. Go to Project Settings → General                     ║
+  ║     Scroll to "Your apps" → Add Web App                  ║
+  ║  6. Copy the firebaseConfig object values into           ║
+  ║     the FIREBASE_CONFIG constant in the JS section       ║
+  ║  7. Add your email(s) to the ADMIN_EMAILS array          ║
+  ║                                                          ║
+  ║  STEP 2 — GOOGLE SHEET CSV                               ║
+  ║  ─────────────────────────────────────────────────────── ║
+  ║  1. Create a Google Sheet with these column headers      ║
+  ║     in Row 1 (case-insensitive):                         ║
+  ║     Series | SeriesNum | CommunityNum | Members |        ║
+  ║     Name | Notes                                         ║
+  ║  2. File → Share → Publish to web                        ║
+  ║     Select: "Entire Document" → "CSV" → Publish          ║
+  ║  3. Copy the URL into SHEET_CSV_URL constant             ║
+  ║                                                          ║
+  ║  STEP 3 — DEPLOY TO GITHUB PAGES (recommended)          ║
+  ║  ─────────────────────────────────────────────────────── ║
+  ║  1. Create a new GitHub repository                       ║
+  ║  2. Upload this HTML file as "index.html"                ║
+  ║  3. Settings → Pages → Source: main branch / root        ║
+  ║  4. Your URL: https://USERNAME.github.io/REPO            ║
+  ║                                                          ║
+  ║  ALTERNATIVE: Netlify                                    ║
+  ║  1. Drag and drop this HTML file at netlify.com/drop     ║
+  ║  2. You get a public URL instantly                        ║
+  ║  3. For custom domain: Site Settings → Domain            ║
+  ║                                                          ║
+  ║  ALTERNATIVE: Vercel                                     ║
+  ║  1. npm i -g vercel                                      ║
+  ║  2. vercel --yes (from folder containing index.html)     ║
+  ║                                                          ║
+  ║  FIREBASE SECURITY RULES (Optional - Firestore)          ║
+  ║  If you add Firestore later, set rules to:               ║
+  ║  allow read, write: if request.auth != null              ║
+  ║     && request.auth.token.email in                       ║
+  ║        ['admin@yourorg.com'];                            ║
+  ║                                                          ║
+  ╚═══════════════════════════════════════════════════════════╝
+-->
+</body>
+</html>
